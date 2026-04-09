@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # The Empathy Engine
 ### Dynamically Expressive Text-to-Speech via Emotion Detection
 
@@ -324,3 +325,6 @@ Returns the full emotion-to-voice mapping table.
 
 ### GET /audio/{filename}
 Serves a generated MP3 audio file.
+=======
+# empathy-engine-
+>>>>>>> c428673bd6bf3f6a35b66402a3f6d0c482eb6934
