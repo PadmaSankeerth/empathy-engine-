@@ -1,0 +1,29 @@
+# ── Core ────────────────────────────────────────────────────
+Flask>=3.0.0
+flask-cors>=4.0.0
+python-dotenv>=1.0.0
+
+# ── Emotion Detection ────────────────────────────────────────
+vaderSentiment>=3.3.2
+transformers>=4.40.0
+torch>=2.2.0          # CPU-only: see setup guide
+
+# ── TTS Engines ──────────────────────────────────────────────
+gTTS>=2.5.0
+pydub>=0.25.1
+
+# Google Cloud TTS (optional — comment out if not using GCP)
+# google-cloud-texttospeech>=2.16.0
+
+# ElevenLabs (optional — comment out if not using ElevenLabs)
+# elevenlabs>=1.0.0
+
+# pyttsx3 (optional offline — uncomment if needed)
+# pyttsx3>=2.90
+
+# ── Audio ────────────────────────────────────────────────────
+# pydub requires ffmpeg installed on system (see setup guide)
+
+# ── Dev / Testing ────────────────────────────────────────────
+pytest>=8.0.0
+requests>=2.31.0

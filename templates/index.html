@@ -1,0 +1,999 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Empathy Engine</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<style>
+/* ── Reset & Base ─────────────────────────────────────────── */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:        #0c0d10;
+  --bg2:       #13141a;
+  --bg3:       #1a1c24;
+  --border:    rgba(255,255,255,.07);
+  --border2:   rgba(255,255,255,.13);
+  --text:      #e8e6e0;
+  --muted:     #6b6a66;
+  --accent:    #c9a86c;
+  --accent2:   #e8c98a;
+  --joy:       #f2c94c;
+  --anger:     #eb5757;
+  --sadness:   #6c8ebf;
+  --fear:      #a78bfa;
+  --surprise:  #f97316;
+  --disgust:   #4ade80;
+  --neutral:   #6b7280;
+  --r:         10px;
+  --r2:        16px;
+  --font-d:    'DM Serif Display', serif;
+  --font-s:    'DM Sans', sans-serif;
+  --font-m:    'DM Mono', monospace;
+}
+html{scroll-behavior:smooth}
+body{
+  background:var(--bg);
+  color:var(--text);
+  font-family:var(--font-s);
+  font-size:15px;
+  line-height:1.6;
+  min-height:100vh;
+  overflow-x:hidden;
+}
+
+/* ── Noise texture overlay ───────────────────────────────── */
+body::before{
+  content:'';
+  position:fixed;inset:0;
+  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E");
+  opacity:.028;
+  pointer-events:none;
+  z-index:1000;
+}
+
+/* ── Layout ──────────────────────────────────────────────── */
+.shell{max-width:860px;margin:0 auto;padding:0 24px 80px}
+
+/* ── Header ──────────────────────────────────────────────── */
+header{
+  padding:56px 0 40px;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  text-align:center;
+  gap:12px;
+}
+.logo-ring{
+  width:52px;height:52px;
+  border-radius:50%;
+  border:1.5px solid var(--accent);
+  display:flex;align-items:center;justify-content:center;
+  margin-bottom:4px;
+  position:relative;
+}
+.logo-ring::before{
+  content:'';
+  position:absolute;inset:-6px;
+  border-radius:50%;
+  border:1px solid rgba(201,168,108,.18);
+  animation:pulse-ring 3s ease-in-out infinite;
+}
+@keyframes pulse-ring{
+  0%,100%{transform:scale(1);opacity:.5}
+  50%{transform:scale(1.08);opacity:1}
+}
+.logo-ring svg{width:22px;height:22px;stroke:var(--accent);fill:none;stroke-width:1.5}
+h1{
+  font-family:var(--font-d);
+  font-size:clamp(2rem,5vw,3rem);
+  font-weight:400;
+  letter-spacing:-.01em;
+  line-height:1.1;
+  color:var(--text);
+}
+h1 em{
+  font-style:italic;
+  color:var(--accent2);
+}
+.tagline{
+  font-size:14px;
+  color:var(--muted);
+  max-width:480px;
+  font-weight:300;
+  letter-spacing:.01em;
+}
+
+/* ── Input Card ──────────────────────────────────────────── */
+.input-card{
+  background:var(--bg2);
+  border:1px solid var(--border);
+  border-radius:var(--r2);
+  padding:24px;
+  margin-bottom:20px;
+}
+.input-label{
+  font-size:11px;
+  font-weight:500;
+  letter-spacing:.1em;
+  text-transform:uppercase;
+  color:var(--muted);
+  margin-bottom:10px;
+  display:block;
+}
+textarea{
+  width:100%;
+  background:var(--bg3);
+  border:1px solid var(--border);
+  border-radius:var(--r);
+  color:var(--text);
+  font-family:var(--font-s);
+  font-size:15px;
+  font-weight:300;
+  line-height:1.65;
+  padding:16px;
+  resize:vertical;
+  min-height:110px;
+  transition:border-color .2s;
+  outline:none;
+}
+textarea::placeholder{color:var(--muted);opacity:.6}
+textarea:focus{border-color:var(--border2)}
+
+.controls{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  margin-top:14px;
+  gap:12px;
+  flex-wrap:wrap;
+}
+.char-count{font-size:12px;color:var(--muted);font-family:var(--font-m)}
+
+/* Test phrases */
+.samples{
+  display:flex;
+  gap:6px;
+  flex-wrap:wrap;
+  margin-top:14px;
+}
+.sample-btn{
+  background:var(--bg3);
+  border:1px solid var(--border);
+  border-radius:20px;
+  color:var(--muted);
+  cursor:pointer;
+  font-family:var(--font-s);
+  font-size:12px;
+  padding:4px 12px;
+  transition:all .18s;
+  white-space:nowrap;
+}
+.sample-btn:hover{border-color:var(--border2);color:var(--text)}
+
+/* ── Submit Button ───────────────────────────────────────── */
+.btn-analyze{
+  background:var(--accent);
+  border:none;
+  border-radius:var(--r);
+  color:#0c0d10;
+  cursor:pointer;
+  font-family:var(--font-s);
+  font-size:14px;
+  font-weight:500;
+  letter-spacing:.03em;
+  padding:11px 28px;
+  transition:all .2s;
+  display:flex;
+  align-items:center;
+  gap:8px;
+  white-space:nowrap;
+}
+.btn-analyze:hover{background:var(--accent2);transform:translateY(-1px)}
+.btn-analyze:active{transform:translateY(0)}
+.btn-analyze:disabled{opacity:.45;cursor:not-allowed;transform:none}
+.btn-analyze svg{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:2}
+
+/* ── Spinner ─────────────────────────────────────────────── */
+.spinner{
+  width:16px;height:16px;
+  border:2px solid rgba(0,0,0,.3);
+  border-top-color:#0c0d10;
+  border-radius:50%;
+  animation:spin .7s linear infinite;
+  display:none;
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ── Results Area ────────────────────────────────────────── */
+#results{display:none;animation:fadeUp .45s ease both}
+@keyframes fadeUp{
+  from{opacity:0;transform:translateY(14px)}
+  to{opacity:1;transform:translateY(0)}
+}
+
+/* ── Emotion Display ─────────────────────────────────────── */
+.emotion-card{
+  border-radius:var(--r2);
+  border:1px solid var(--border);
+  padding:24px;
+  margin-bottom:16px;
+  background:var(--bg2);
+  position:relative;
+  overflow:hidden;
+}
+.emotion-card::before{
+  content:'';
+  position:absolute;
+  top:0;left:0;right:0;
+  height:2px;
+  background:var(--emotion-color,var(--accent));
+  transition:background .4s;
+}
+.emotion-top{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  margin-bottom:20px;
+}
+.emotion-label-wrap{display:flex;align-items:center;gap:12px}
+.emotion-icon{
+  width:40px;height:40px;
+  border-radius:50%;
+  background:rgba(255,255,255,.05);
+  border:1px solid var(--border);
+  display:flex;align-items:center;justify-content:center;
+  font-size:18px;
+  transition:background .4s;
+}
+.emotion-name{
+  font-family:var(--font-d);
+  font-size:1.6rem;
+  font-weight:400;
+  text-transform:capitalize;
+  transition:color .4s;
+}
+.intensity-badge{
+  background:rgba(255,255,255,.05);
+  border:1px solid var(--border);
+  border-radius:20px;
+  font-family:var(--font-m);
+  font-size:11px;
+  padding:4px 12px;
+  color:var(--muted);
+}
+
+/* Intensity bar */
+.intensity-row{display:flex;align-items:center;gap:12px;margin-bottom:16px}
+.intensity-bar-wrap{
+  flex:1;
+  height:3px;
+  background:rgba(255,255,255,.07);
+  border-radius:2px;
+  overflow:hidden;
+}
+.intensity-bar{
+  height:100%;
+  border-radius:2px;
+  background:var(--emotion-color,var(--accent));
+  width:0%;
+  transition:width .6s cubic-bezier(.34,1.56,.64,1);
+}
+.intensity-label{font-size:11px;color:var(--muted);font-family:var(--font-m);min-width:60px;text-align:right}
+
+/* Emotion scores grid */
+.scores-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(110px,1fr));
+  gap:8px;
+  margin-top:16px;
+}
+.score-item{
+  background:var(--bg3);
+  border:1px solid var(--border);
+  border-radius:var(--r);
+  padding:10px 12px;
+}
+.score-item-name{
+  font-size:11px;
+  color:var(--muted);
+  text-transform:capitalize;
+  margin-bottom:4px;
+}
+.score-item-bar{
+  height:2px;
+  background:rgba(255,255,255,.07);
+  border-radius:1px;
+  overflow:hidden;
+  margin-bottom:4px;
+}
+.score-item-fill{
+  height:100%;
+  border-radius:1px;
+  transition:width .5s;
+}
+.score-item-val{
+  font-size:11px;
+  font-family:var(--font-m);
+  color:var(--text);
+}
+
+/* ── Voice Params Strip ──────────────────────────────────── */
+.params-strip{
+  display:flex;gap:10px;
+  flex-wrap:wrap;
+  background:var(--bg2);
+  border:1px solid var(--border);
+  border-radius:var(--r2);
+  padding:16px 20px;
+  margin-bottom:16px;
+}
+.param-item{display:flex;flex-direction:column;gap:2px;min-width:70px}
+.param-label{font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.param-value{font-family:var(--font-m);font-size:13px;color:var(--accent2)}
+
+/* ── Audio Player ────────────────────────────────────────── */
+.audio-card{
+  background:var(--bg2);
+  border:1px solid var(--border);
+  border-radius:var(--r2);
+  padding:20px 24px;
+  margin-bottom:16px;
+}
+.audio-card-title{
+  font-size:11px;
+  font-weight:500;
+  letter-spacing:.1em;
+  text-transform:uppercase;
+  color:var(--muted);
+  margin-bottom:14px;
+}
+
+/* Custom audio player */
+.player{display:flex;align-items:center;gap:14px}
+.play-btn{
+  width:42px;height:42px;
+  border-radius:50%;
+  background:var(--accent);
+  border:none;
+  cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  flex-shrink:0;
+  transition:all .18s;
+}
+.play-btn:hover{background:var(--accent2);transform:scale(1.06)}
+.play-btn svg{width:16px;height:16px;fill:#0c0d10}
+.progress-wrap{
+  flex:1;
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+}
+.progress-bar{
+  height:3px;
+  background:rgba(255,255,255,.1);
+  border-radius:2px;
+  cursor:pointer;
+  position:relative;
+}
+.progress-fill{
+  height:100%;
+  background:var(--emotion-color,var(--accent));
+  border-radius:2px;
+  width:0%;
+  transition:width .1s linear;
+}
+.time-row{display:flex;justify-content:space-between}
+.time-txt{font-size:11px;color:var(--muted);font-family:var(--font-m)}
+audio{display:none}
+
+/* Waveform visualizer */
+.waveform{
+  display:flex;
+  align-items:center;
+  gap:2px;
+  height:28px;
+  padding:0 4px;
+}
+.waveform-bar{
+  width:3px;
+  background:var(--emotion-color, var(--accent));
+  border-radius:2px;
+  opacity:.3;
+  transition:height .1s;
+  min-height:3px;
+}
+.waveform-bar.active{opacity:.9}
+
+/* ── SSML Preview ────────────────────────────────────────── */
+.ssml-section{
+  background:var(--bg2);
+  border:1px solid var(--border);
+  border-radius:var(--r2);
+  margin-bottom:16px;
+  overflow:hidden;
+}
+.ssml-header{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding:12px 18px;
+  cursor:pointer;
+  user-select:none;
+  transition:background .15s;
+}
+.ssml-header:hover{background:rgba(255,255,255,.03)}
+.ssml-header-left{display:flex;align-items:center;gap:8px}
+.ssml-tag-pill{
+  font-size:10px;
+  font-family:var(--font-m);
+  background:rgba(201,168,108,.12);
+  color:var(--accent);
+  border:1px solid rgba(201,168,108,.25);
+  border-radius:4px;
+  padding:1px 7px;
+}
+.ssml-toggle-icon{
+  font-size:12px;color:var(--muted);
+  transition:transform .2s;
+}
+.ssml-toggle-icon.open{transform:rotate(180deg)}
+.ssml-body{
+  display:none;
+  padding:0 18px 16px;
+}
+.ssml-body.open{display:block}
+pre{
+  background:var(--bg3);
+  border:1px solid var(--border);
+  border-radius:var(--r);
+  color:#a8d0a8;
+  font-family:var(--font-m);
+  font-size:12px;
+  line-height:1.7;
+  overflow-x:auto;
+  padding:14px;
+  white-space:pre-wrap;
+  word-break:break-all;
+}
+
+/* ── History ─────────────────────────────────────────────── */
+.history-section{margin-top:32px}
+.section-title{
+  font-size:11px;
+  font-weight:500;
+  letter-spacing:.1em;
+  text-transform:uppercase;
+  color:var(--muted);
+  margin-bottom:14px;
+}
+.history-list{display:flex;flex-direction:column;gap:8px}
+.history-item{
+  background:var(--bg2);
+  border:1px solid var(--border);
+  border-radius:var(--r);
+  padding:12px 16px;
+  display:flex;
+  align-items:center;
+  gap:14px;
+  cursor:pointer;
+  transition:border-color .15s,background .15s;
+}
+.history-item:hover{border-color:var(--border2);background:var(--bg3)}
+.history-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.history-text{flex:1;font-size:13px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.history-emotion{font-size:11px;color:var(--muted);text-transform:capitalize;flex-shrink:0}
+.history-play{
+  width:26px;height:26px;border-radius:50%;
+  background:rgba(255,255,255,.05);
+  border:1px solid var(--border);
+  display:flex;align-items:center;justify-content:center;
+  flex-shrink:0;
+}
+.history-play svg{width:9px;height:9px;fill:var(--text)}
+
+/* ── Error Toast ─────────────────────────────────────────── */
+.toast{
+  position:fixed;bottom:24px;right:24px;
+  background:#2a1515;
+  border:1px solid #5a2020;
+  border-radius:var(--r);
+  color:#f87171;
+  font-size:13px;
+  padding:12px 18px;
+  z-index:999;
+  display:none;
+  animation:fadeUp .3s ease;
+  max-width:360px;
+}
+
+/* ── Processing overlay ──────────────────────────────────── */
+#processing-state{
+  display:none;
+  text-align:center;
+  padding:32px;
+  color:var(--muted);
+  font-size:13px;
+}
+.processing-dots span{
+  animation:blink 1.4s infinite both;
+  opacity:0;
+}
+.processing-dots span:nth-child(2){animation-delay:.2s}
+.processing-dots span:nth-child(3){animation-delay:.4s}
+@keyframes blink{0%,80%,100%{opacity:0}40%{opacity:1}}
+
+/* ── Footer ──────────────────────────────────────────────── */
+footer{
+  margin-top:60px;
+  border-top:1px solid var(--border);
+  padding:20px 0;
+  text-align:center;
+  font-size:12px;
+  color:var(--muted);
+}
+footer span{color:var(--accent);font-family:var(--font-m)}
+
+/* ── Responsive ──────────────────────────────────────────── */
+@media(max-width:600px){
+  .scores-grid{grid-template-columns:repeat(3,1fr)}
+  .params-strip{gap:16px}
+  h1{font-size:1.8rem}
+}
+</style>
+</head>
+<body>
+
+<div class="shell">
+
+  <!-- Header -->
+  <header>
+    <div class="logo-ring">
+      <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z" stroke-width="0" fill="currentColor" style="fill:var(--accent)"/></svg>
+    </div>
+    <h1>The <em>Empathy</em> Engine</h1>
+    <p class="tagline">Dynamically modulates synthesized speech based on the emotional tone of your text — giving AI a genuinely human voice.</p>
+  </header>
+
+  <!-- Input Section -->
+  <div class="input-card">
+    <label class="input-label" for="text-input">Enter your text</label>
+    <textarea
+      id="text-input"
+      placeholder="Type or paste text here… e.g. 'I can't believe this just happened, this is incredible!'"
+      maxlength="2000"
+    ></textarea>
+
+    <div class="controls">
+      <span class="char-count"><span id="char-num">0</span> / 2000</span>
+      <button class="btn-analyze" id="analyze-btn">
+        <div class="spinner" id="spinner"></div>
+        <svg id="btn-icon" viewBox="0 0 24 24"><path d="M12 2a10 10 0 0 1 10 10 10 10 0 0 1-10 10A10 10 0 0 1 2 12 10 10 0 0 1 12 2m-2 7v2H8l4 4 4-4h-2V9h-4z" fill="currentColor" stroke="none"/></svg>
+        Synthesize Voice
+      </button>
+    </div>
+
+    <!-- Sample Sentences -->
+    <div class="samples" id="samples">
+      <span style="font-size:11px;color:var(--muted);align-self:center;letter-spacing:.05em;text-transform:uppercase;">Try:</span>
+    </div>
+  </div>
+
+  <!-- Processing State -->
+  <div id="processing-state">
+    Analyzing emotion and synthesizing audio
+    <span class="processing-dots"><span>.</span><span>.</span><span>.</span></span>
+  </div>
+
+  <!-- Results -->
+  <div id="results">
+
+    <!-- Emotion Display -->
+    <div class="emotion-card" id="emotion-card">
+      <div class="emotion-top">
+        <div class="emotion-label-wrap">
+          <div class="emotion-icon" id="emotion-icon">—</div>
+          <span class="emotion-name" id="emotion-name">—</span>
+        </div>
+        <span class="intensity-badge" id="intensity-badge">—</span>
+      </div>
+      <div class="intensity-row">
+        <span style="font-size:11px;color:var(--muted);min-width:52px">Intensity</span>
+        <div class="intensity-bar-wrap"><div class="intensity-bar" id="intensity-bar"></div></div>
+        <span class="intensity-label" id="intensity-val">—</span>
+      </div>
+
+      <!-- Confidence bars per emotion -->
+      <div class="scores-grid" id="scores-grid"></div>
+    </div>
+
+    <!-- Voice Params -->
+    <div class="params-strip" id="params-strip">
+      <div class="param-item"><span class="param-label">Rate</span><span class="param-value" id="p-rate">—</span></div>
+      <div class="param-item"><span class="param-label">Pitch</span><span class="param-value" id="p-pitch">—</span></div>
+      <div class="param-item"><span class="param-label">Volume</span><span class="param-value" id="p-volume">—</span></div>
+      <div class="param-item"><span class="param-label">Break</span><span class="param-value" id="p-break">—</span></div>
+      <div class="param-item"><span class="param-label">Emphasis</span><span class="param-value" id="p-emphasis">—</span></div>
+      <div class="param-item"><span class="param-label">Speed</span><span class="param-value" id="p-ms">—</span></div>
+    </div>
+
+    <!-- Audio Player -->
+    <div class="audio-card">
+      <div class="audio-card-title">Synthesized Speech</div>
+      <div class="player">
+        <button class="play-btn" id="play-btn" aria-label="Play">
+          <svg id="play-icon" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+        </button>
+        <div class="progress-wrap">
+          <div class="waveform" id="waveform"></div>
+          <div class="progress-bar" id="progress-bar">
+            <div class="progress-fill" id="progress-fill"></div>
+          </div>
+          <div class="time-row">
+            <span class="time-txt" id="time-current">0:00</span>
+            <span class="time-txt" id="time-total">0:00</span>
+          </div>
+        </div>
+      </div>
+      <audio id="audio-player"></audio>
+    </div>
+
+    <!-- SSML Preview -->
+    <div class="ssml-section">
+      <div class="ssml-header" id="ssml-toggle">
+        <div class="ssml-header-left">
+          <span class="ssml-tag-pill">&lt;speak&gt;</span>
+          <span style="font-size:13px;color:var(--muted)">SSML markup preview</span>
+        </div>
+        <span class="ssml-toggle-icon" id="ssml-chevron">▾</span>
+      </div>
+      <div class="ssml-body" id="ssml-body">
+        <pre id="ssml-pre"></pre>
+      </div>
+    </div>
+
+  </div><!-- /results -->
+
+  <!-- History -->
+  <div class="history-section" id="history-section" style="display:none">
+    <div class="section-title">Recent</div>
+    <div class="history-list" id="history-list"></div>
+  </div>
+
+  <footer>
+    Built with <span>Flask · HuggingFace · VADER · gTTS</span> — Empathy Engine v1.0
+  </footer>
+
+</div><!-- /shell -->
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ── Constants & State ────────────────────────────────────────
+const SAMPLES = [
+  { text: "I just got the job offer — this is the best day of my life!", emotion: "joy" },
+  { text: "I cannot believe you did this again. This is absolutely unacceptable.", emotion: "anger" },
+  { text: "I miss you so much. Everything feels empty without you here.", emotion: "sadness" },
+  { text: "Wait — what was that noise? I don't think we're alone in here.", emotion: "fear" },
+  { text: "Oh wow, I had absolutely no idea this was happening. You caught me completely off guard!", emotion: "surprise" },
+  { text: "That smell is absolutely revolting. How can anyone eat that?", emotion: "disgust" },
+  { text: "The meeting is scheduled for Monday at 9am in conference room B.", emotion: "neutral" },
+];
+
+const EMOTION_META = {
+  joy:      { icon: "✦", color: "var(--joy)"     },
+  anger:    { icon: "◈", color: "var(--anger)"   },
+  sadness:  { icon: "◇", color: "var(--sadness)" },
+  fear:     { icon: "◉", color: "var(--fear)"    },
+  surprise: { icon: "◎", color: "var(--surprise)"},
+  disgust:  { icon: "◐", color: "var(--disgust)" },
+  neutral:  { icon: "○", color: "var(--neutral)" },
+};
+
+const EMOTION_COLORS_HEX = {
+  joy:"#f2c94c",anger:"#eb5757",sadness:"#6c8ebf",
+  fear:"#a78bfa",surprise:"#f97316",disgust:"#4ade80",neutral:"#6b7280"
+};
+
+let history = [];
+let audioCtx = null;
+
+// ── DOM Refs ────────────────────────────────────────────────
+const textarea      = document.getElementById('text-input');
+const analyzeBtn    = document.getElementById('analyze-btn');
+const spinner       = document.getElementById('spinner');
+const btnIcon       = document.getElementById('btn-icon');
+const charNum       = document.getElementById('char-num');
+const results       = document.getElementById('results');
+const processing    = document.getElementById('processing-state');
+const emotionCard   = document.getElementById('emotion-card');
+const emotionIcon   = document.getElementById('emotion-icon');
+const emotionName   = document.getElementById('emotion-name');
+const intensityBadge= document.getElementById('intensity-badge');
+const intensityBar  = document.getElementById('intensity-bar');
+const intensityVal  = document.getElementById('intensity-val');
+const scoresGrid    = document.getElementById('scores-grid');
+const pRate         = document.getElementById('p-rate');
+const pPitch        = document.getElementById('p-pitch');
+const pVolume       = document.getElementById('p-volume');
+const pBreak        = document.getElementById('p-break');
+const pEmphasis     = document.getElementById('p-emphasis');
+const pMs           = document.getElementById('p-ms');
+const audioPlayer   = document.getElementById('audio-player');
+const playBtn       = document.getElementById('play-btn');
+const playIcon      = document.getElementById('play-icon');
+const progressFill  = document.getElementById('progress-fill');
+const progressBar   = document.getElementById('progress-bar');
+const timeCurrent   = document.getElementById('time-current');
+const timeTotal     = document.getElementById('time-total');
+const ssmlPre       = document.getElementById('ssml-pre');
+const ssmlToggle    = document.getElementById('ssml-toggle');
+const ssmlBody      = document.getElementById('ssml-body');
+const ssmlChevron   = document.getElementById('ssml-chevron');
+const waveformEl    = document.getElementById('waveform');
+const toast         = document.getElementById('toast');
+const historySection= document.getElementById('history-section');
+const historyList   = document.getElementById('history-list');
+const samplesEl     = document.getElementById('samples');
+
+// ── Sample Buttons ──────────────────────────────────────────
+SAMPLES.forEach(s => {
+  const btn = document.createElement('button');
+  btn.className = 'sample-btn';
+  btn.textContent = s.emotion;
+  btn.title = s.text;
+  btn.style.borderColor = EMOTION_COLORS_HEX[s.emotion] + '55';
+  btn.addEventListener('click', () => {
+    textarea.value = s.text;
+    charNum.textContent = s.text.length;
+    textarea.focus();
+  });
+  samplesEl.appendChild(btn);
+});
+
+// ── Character Count ─────────────────────────────────────────
+textarea.addEventListener('input', () => {
+  charNum.textContent = textarea.value.length;
+});
+
+// ── SSML Toggle ─────────────────────────────────────────────
+ssmlToggle.addEventListener('click', () => {
+  const open = ssmlBody.classList.toggle('open');
+  ssmlChevron.classList.toggle('open', open);
+});
+
+// ── Waveform Generator ──────────────────────────────────────
+function buildWaveform(color) {
+  waveformEl.innerHTML = '';
+  for (let i = 0; i < 38; i++) {
+    const bar = document.createElement('div');
+    bar.className = 'waveform-bar';
+    bar.style.height = (Math.random() * 18 + 4) + 'px';
+    bar.style.background = color;
+    waveformEl.appendChild(bar);
+  }
+}
+
+function animateWaveform(playing) {
+  const bars = waveformEl.querySelectorAll('.waveform-bar');
+  bars.forEach(b => b.classList.toggle('active', playing));
+  if (playing) {
+    const animate = () => {
+      if (!audioPlayer.paused) {
+        bars.forEach(b => {
+          b.style.height = (Math.random() * 18 + 4) + 'px';
+        });
+        requestAnimationFrame(animate);
+      }
+    };
+    requestAnimationFrame(animate);
+  }
+}
+
+// ── Audio Player Controls ───────────────────────────────────
+playBtn.addEventListener('click', () => {
+  if (audioPlayer.paused) {
+    audioPlayer.play();
+  } else {
+    audioPlayer.pause();
+  }
+});
+
+audioPlayer.addEventListener('play', () => {
+  playIcon.innerHTML = '<path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>';
+  animateWaveform(true);
+});
+
+audioPlayer.addEventListener('pause', () => {
+  playIcon.innerHTML = '<path d="M8 5v14l11-7z"/>';
+  animateWaveform(false);
+});
+
+audioPlayer.addEventListener('ended', () => {
+  playIcon.innerHTML = '<path d="M8 5v14l11-7z"/>';
+  progressFill.style.width = '0%';
+  timeCurrent.textContent = '0:00';
+  animateWaveform(false);
+});
+
+audioPlayer.addEventListener('timeupdate', () => {
+  if (!audioPlayer.duration) return;
+  const pct = (audioPlayer.currentTime / audioPlayer.duration) * 100;
+  progressFill.style.width = pct + '%';
+  timeCurrent.textContent = formatTime(audioPlayer.currentTime);
+});
+
+audioPlayer.addEventListener('loadedmetadata', () => {
+  timeTotal.textContent = formatTime(audioPlayer.duration);
+});
+
+progressBar.addEventListener('click', (e) => {
+  const rect = progressBar.getBoundingClientRect();
+  const pct  = (e.clientX - rect.left) / rect.width;
+  audioPlayer.currentTime = pct * audioPlayer.duration;
+});
+
+function formatTime(s) {
+  const m = Math.floor(s / 60);
+  const sec = Math.floor(s % 60).toString().padStart(2,'0');
+  return `${m}:${sec}`;
+}
+
+// ── Main Analysis ───────────────────────────────────────────
+analyzeBtn.addEventListener('click', runAnalysis);
+textarea.addEventListener('keydown', e => {
+  if (e.ctrlKey && e.key === 'Enter') runAnalysis();
+});
+
+async function runAnalysis() {
+  const text = textarea.value.trim();
+  if (!text) { showToast('Please enter some text first.'); return; }
+  if (text.length < 3) { showToast('Text is too short.'); return; }
+
+  // UI: loading state
+  analyzeBtn.disabled = true;
+  spinner.style.display = 'block';
+  btnIcon.style.display = 'none';
+  results.style.display = 'none';
+  processing.style.display = 'block';
+
+  try {
+    const res  = await fetch('/analyze', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text }),
+    });
+    const data = await res.json();
+
+    if (!data.success) {
+      showToast(data.error || 'Something went wrong.');
+      return;
+    }
+
+    renderResults(data);
+    addToHistory(data);
+
+  } catch (err) {
+    showToast('Network error — is the server running?');
+    console.error(err);
+  } finally {
+    analyzeBtn.disabled = false;
+    spinner.style.display = 'none';
+    btnIcon.style.display = 'block';
+    processing.style.display = 'none';
+  }
+}
+
+// ── Render Results ──────────────────────────────────────────
+function renderResults(data) {
+  const meta  = EMOTION_META[data.emotion] || EMOTION_META.neutral;
+  const color = meta.color;
+  const hex   = EMOTION_COLORS_HEX[data.emotion] || '#6b7280';
+
+  // Emotion card
+  emotionCard.style.setProperty('--emotion-color', color);
+  emotionIcon.textContent = meta.icon;
+  emotionIcon.style.background = hex + '22';
+  emotionIcon.style.borderColor = hex + '55';
+  emotionName.textContent = data.emotion;
+  emotionName.style.color = color;
+
+  const pct = Math.round(data.intensity * 100);
+  intensityBadge.textContent = `${pct}% intensity`;
+  intensityBar.style.width = pct + '%';
+  intensityBar.style.background = color;
+  intensityVal.textContent = `${pct}%`;
+
+  // Emotion scores
+  scoresGrid.innerHTML = '';
+  const scores = data.all_scores;
+  Object.entries(scores)
+    .sort((a,b) => b[1] - a[1])
+    .forEach(([label, score]) => {
+      const scorePct = Math.round(score * 100);
+      const emo = EMOTION_META[label] || {};
+      const scoreHex = EMOTION_COLORS_HEX[label] || '#6b7280';
+      scoresGrid.innerHTML += `
+        <div class="score-item">
+          <div class="score-item-name">${emo.icon||''} ${label}</div>
+          <div class="score-item-bar"><div class="score-item-fill" style="width:${scorePct}%;background:${scoreHex}88"></div></div>
+          <div class="score-item-val">${scorePct}%</div>
+        </div>`;
+    });
+
+  // Voice params
+  pRate.textContent    = data.voice_params.rate;
+  pPitch.textContent   = data.voice_params.pitch;
+  pVolume.textContent  = data.voice_params.volume;
+  pBreak.textContent   = data.voice_params.break_ms + 'ms';
+  pEmphasis.textContent= data.voice_params.emphasis;
+  pMs.textContent      = data.processing_ms + 'ms';
+
+  // SSML
+  ssmlPre.textContent = formatSSML(data.ssml);
+
+  // Audio
+  const colorVar = `var(--${data.emotion}, var(--accent))`;
+  progressFill.style.background = color;
+  buildWaveform(hex);
+  audioPlayer.src = data.audio_url;
+  audioPlayer.load();
+  audioPlayer.play().catch(() => {});
+
+  // Show results
+  results.style.display = 'block';
+  results.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function formatSSML(ssml) {
+  return ssml
+    .replace(/></g, '>\n  <')
+    .replace(/^<speak>\n  /, '<speak>\n  ')
+    .replace(/\n  <\/speak>/, '\n</speak>');
+}
+
+// ── History ─────────────────────────────────────────────────
+function addToHistory(data) {
+  history.unshift(data);
+  if (history.length > 8) history.pop();
+  renderHistory();
+}
+
+function renderHistory() {
+  if (history.length === 0) return;
+  historySection.style.display = 'block';
+  historyList.innerHTML = '';
+  history.forEach((item, i) => {
+    const hex  = EMOTION_COLORS_HEX[item.emotion] || '#6b7280';
+    const el   = document.createElement('div');
+    el.className = 'history-item';
+    el.innerHTML = `
+      <div class="history-dot" style="background:${hex}"></div>
+      <span class="history-text">${escHtml(item.text)}</span>
+      <span class="history-emotion">${item.emotion}</span>
+      <div class="history-play">
+        <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+      </div>`;
+    el.addEventListener('click', () => {
+      audioPlayer.src = item.audio_url;
+      audioPlayer.play().catch(() => {});
+    });
+    historyList.appendChild(el);
+  });
+}
+
+// ── Toast ────────────────────────────────────────────────────
+function showToast(msg) {
+  toast.textContent = msg;
+  toast.style.display = 'block';
+  setTimeout(() => { toast.style.display = 'none'; }, 3500);
+}
+
+function escHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+</script>
+</body>
+</html>
